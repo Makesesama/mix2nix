@@ -122,20 +122,44 @@ defmodule Mix2nix do
     sha256 = sha256 || get_hash(hex_name, version)
     deps = dep_string(allpkgs, deps)
 
-    """
-        #{name} = #{buildEnv} rec {
-          name = "#{name}";
-          version = "#{version}";
+    case name do
+      "exqlite" ->
+        """
+          #{name} = #{buildEnv} rec {
+            name = "#{name}";
+            version = "#{version}";
 
-          src = fetchHex {
-            pkg = "#{hex_name}";
-            version = "${version}";
-            sha256 = "#{sha256}";
+            src = fetchHex {
+              pkg = "#{hex_name}";
+              version = "${version}";
+              sha256 = "#{sha256}";
+            };
+
+            preConfigure = ''
+              export ELIXIR_MAKE_CACHE_DIR="$TMPDIR/.cache"
+            '';
+
+            beamDeps = #{deps};
           };
+      """
+      
+      _ ->
+        """
+          #{name} = #{buildEnv} rec {
+            name = "#{name}";
+            version = "#{version}";
 
-          beamDeps = #{deps};
-        };
-    """
+            src = fetchHex {
+              pkg = "#{hex_name}";
+              version = "${version}";
+              sha256 = "#{sha256}";
+            };
+
+            beamDeps = #{deps};
+          };
+      """
+    end
+
   end
 
   defp wrap(pkgs) do
